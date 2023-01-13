@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="initial-scale=1.0, user-scalable=no, width=device-width"
+    />
+    <title>实时等车</title>
+    <link
+      rel="stylesheet"
+      href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css"
+    />
+    <style type="text/css">
+      html,
+      body,
+      #container {
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container"></div>
+    <div class="input-card" style="width: 18rem">
+      <label style="color: grey">实时等车</label>
+      <input id="go" type="button" class="btn" value="出门" />
+      <input id="back" type="button" class="btn" value="回家" />
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script type="text/javascript">
+      window._AMapSecurityConfig = {
+        securityJsCode: "d998e14c8c321ceeb638dedc728c6808",
+      };
+    </script>
+    <script
+      type="text/javascript"
+      src="https://webapi.amap.com/maps?v=2.0&key=012804b0d9182fa5c842bead60990beb&plugin=AMap.LineSearch"
+    ></script>
+    <script language="javascript">
+      const mappingArr = [
+        {
+          type: "出门",
+          lines: "310100016784",
+          stations: "310100016784035",
+          route: "新临专线",
+          position: [121.655096, 31.029963],
+        },
+        {
+          type: "出门",
+          lines: "900000039352",
+          stations: "900000039352009",
+          route: "1108路",
+          position: [121.655096, 31.029963],
+        },
+        {
+          type: "出门",
+          lines: "310100016788",
+          stations: "310100016788207",
+          route: "105路",
+          position: [121.655096, 31.029963],
+        },
+        {
+          type: "出门",
+          lines: "900000177089",
+          stations: "900000177089008",
+          route: "1162路",
+          position: [121.65648, 31.033175],
+        },
+        {
+          type: "回家",
+          lines: "900000026116",
+          stations: "900000026116023",
+          route: "新临专线",
+          position: [121.648589, 31.045352],
+        },
+        {
+          type: "回家",
+          lines: "900000039352",
+          stations: "900000039352001",
+          route: "1108路",
+          position: [121.648589, 31.045352],
+        },
+        {
+          type: "回家",
+          lines: "900000026124",
+          stations: "900000026124078",
+          route: "105路",
+          position: [121.650844, 31.045031],
+        },
+        {
+          type: "回家",
+          lines: "900000177090",
+          stations: "900000177090001",
+          route: "1162路",
+          position: [121.648589, 31.045352],
+        },
+      ];
+      const stationEnum = mappingArr.reduce(
+        (r, c, ci) => ({
+          ...r,
+          [c.stations]: {
+            stationName: c.route,
+            stationPosition: c.position,
+          },
+        }),
+        {}
+      );
+      const zoomDefault = 13;
+      const mapInstance = new AMap.Map("container", {
+        resizeEnable: true,
+        center: [121.6615, 31.039252], //地图中心点 13543547.378399987,3616073.678712582,16.23z
+        zoom: zoomDefault, //地图显示的缩放级别
+      });
+      const layerInstance = new AMap.LabelsLayer({
+        rejectMapMask: true,
+        collision: false,
+        animation: true,
+      });
+      mapInstance.add(layerInstance);
+      //   绘制Marker
+      const markerHome = [121.654979, 31.033175]; //家门口
+      const markerMetro = [121.649003, 31.04553]; //地铁站
+      // 添加车的marker
+      function addMarker({ position, station_left, arrival, bus, offsetY }) {
+        new AMap.Marker({
+          map: mapInstance,
+          position,
+          icon: new AMap.Icon({
+            size: new AMap.Size(32, 32), // 图标尺寸
+            image: "https://a.amap.com/jsapi_demos/static/resource/img/pin.png", // Icon的图像
+            imageSize: new AMap.Size(32, 32),
+          }),
+          zIndex: 10,
+          anchor: "bottom-center",
+        });
+        // 添加文字
+        layerInstance.add(
+          new AMap.LabelMarker({
+            name: bus,
+            position,
+            zooms: [10, 20],
+            opacity: 1,
+            zIndex: 10,
+            fold: false,
+            text: {
+              // 要展示的文字内容
+              content: ` ${bus} - ${station_left}站远 - 还有 ${Number(
+                arrival
+              ).toFixed(0)} 分钟`,
+              direction: "bottom", // 文字方向，有 icon 时为围绕文字的方向，没有 icon 时，则为相对 position 的位置
+              offset: [10, offsetY * 20 - 10], // 在 direction 基础上的偏移量
+              // 文字样式
+              style: {
+                // 字体大小
+                fontSize: 12,
+                // 字体颜色
+                fillColor: "#22886f",
+                strokeColor: "#fff",
+                strokeWidth: 2,
+                fold: false,
+                padding: [10],
+                backgroundColor: "#ffffff",
+              },
+            },
+          })
+        );
+      }
+      // 起止点marker绘制
+      function drawEndMarker(direction = true) {
+        // 默认true是出门上班,false是下班回家
+        new AMap.Marker({
+          map: mapInstance,
+          position: direction ? markerHome : markerMetro,
+          icon: "https://webapi.amap.com/theme/v1.3/markers/n/start.png",
+          zIndex: 10,
+          anchor: "bottom-center",
+        });
+        new AMap.Marker({
+          map: mapInstance,
+          position: direction ? markerMetro : markerHome,
+          icon: "https://webapi.amap.com/theme/v1.3/markers/n/end.png",
+          zIndex: 10,
+          anchor: "bottom-center",
+        });
+      }
+      /*公交线路查询*/
+      async function getDataToMap(direction = true) {
+        // direction 默认true，出门
+        const res = await Promise.all(
+          mappingArr
+            .filter((it) => it.type === (direction ? "出门" : "回家"))
+            .map(({ lines, stations }) =>
+              axios.post(
+                "https://aisle.amap.com/ws/mapapi/realtimebus/linestation",
+                null,
+                {
+                  params: {
+                    key: "59f783b90e9cb4aaa352b66da1a8d358",
+                    lines,
+                    need_bus_status: 1,
+                    stations,
+                  },
+                }
+              )
+            )
+        );
+        const tripsArray = []; // 存放运行中的车 们
+        res.forEach(({ data }) => {
+          const bus = data?.buses?.[0];
+          const nearestCar = bus?.trip?.[0];
+          console.log(stationEnum[bus.station], bus);
+          if (nearestCar) {
+            tripsArray.push({
+              bus: stationEnum[bus.station]?.stationName,
+              stationPosition: stationEnum[bus.station]?.stationPosition, // [nearestCar.x, nearestCar.y],
+              station_left: nearestCar.station_left,
+              arrival: nearestCar.arrival / 60,
+            });
+          } else if (bus?.trip?.length === 0) {
+            tripsArray.push({
+              bus: `${stationEnum[bus.station]?.stationName}「${bus.sub_text}」`,
+              stationPosition: stationEnum[bus.station]?.stationPosition,
+              station_left: 0,
+              arrival:
+                Number(
+                  /\d+/g.exec(moment(bus.schedule, "hh:mm").fromNow())?.[0]
+                ) ?? 0,
+            });
+          }
+        });
+        tripsArray.sort((a, b) => {
+          if (typeof a.stationPosition === typeof b.stationPosition)
+            return a.arrival - b.arrival;
+          else return typeof a.stationPosition === "string" ? 1 : -1;
+        });
+        console.log(tripsArray);
+        const hashCacheIndex = {};
+        tripsArray.forEach((it, itI) => {
+          const hashKey = JSON.stringify(it.stationPosition);
+          if (hashKey in hashCacheIndex) hashCacheIndex[hashKey] = hashCacheIndex[hashKey] + 1;
+          else hashCacheIndex[hashKey] = 1;
+          addMarker({
+            position: it.stationPosition,
+            station_left: it.station_left,
+            arrival: it.arrival,
+            bus: it.bus,
+            offsetY: hashCacheIndex[hashKey]-1,
+          });
+        });
+      }
+
+      /*   执行 出门 */
+      document.getElementById("go").onclick = () => {
+        mapInstance.setZoom(zoomDefault + 3);
+        mapInstance.panTo(new AMap.LngLat(...markerHome));
+        mapInstance.clearMap();
+        drawEndMarker();
+        getDataToMap();
+      };
+      /*   执行 回家 */
+      document.getElementById("back").onclick = () => {
+        mapInstance.setZoom(zoomDefault + 3);
+        mapInstance.panTo(new AMap.LngLat(...markerMetro));
+        mapInstance.clearMap();
+        drawEndMarker(false);
+        getDataToMap(false);
+      };
+    </script>
+  </body>
+</html>

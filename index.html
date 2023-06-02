@@ -152,11 +152,11 @@
             fold: false,
             text: {
               // 要展示的文字内容
-              content: isNaN(Number(arrival))?` ${bus} - 暂无行程`:String(bus).includes('尚未')?` ${bus} - ${station_left}站远 - 距发车 ${Number(
-                arrival
-              ).toFixed(0)} 分钟`:` ${bus} - ${station_left}站远 - 还有 ${Number(
-                arrival
-              ).toFixed(0)} 分钟`,
+              content: isNaN(Number(arrival))
+              ?` ${bus} - 暂无行程`
+              :String(bus).includes('尚未')
+                ?` ${bus} - ${isNaN(station_left)?'':(station_left+'站远 - ')}距发车 ${Number(arrival).toFixed(0)} 分钟`
+                :` ${bus} - ${station_left}站远 - 还有 ${Number(arrival).toFixed(0)} 分钟`,
               direction: "bottom", // 文字方向，有 icon 时为围绕文字的方向，没有 icon 时，则为相对 position 的位置
               offset: [10, offsetY * 20 - 10], // 在 direction 基础上的偏移量
               // 文字样式
@@ -230,7 +230,7 @@
             tripsArray.push({
               bus: `${stationEnum[bus.station]?.stationName}「${bus.sub_text}」`,
               stationPosition: stationEnum[bus.station]?.stationPosition,
-              station_left: 0,
+              station_left: NaN,
               arrival:
                 Number(
                   /\d+/g.exec(moment(bus.schedule, "hh:mm").fromNow())?.[0]

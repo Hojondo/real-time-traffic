@@ -154,9 +154,9 @@
               // 要展示的文字内容
               content: isNaN(Number(arrival))
               ?` ${bus} - 暂无行程`
-              :String(bus).includes('尚未')
+              :(String(bus).includes('尚未')
                 ?` ${bus} - ${isNaN(station_left)?'':(station_left+'站远 - ')}距发车 ${Number(arrival).toFixed(0)} 分钟`
-                :` ${bus} - ${station_left}站远 - 还有 ${Number(arrival).toFixed(0)} 分钟`,
+                :` ${bus} - ${station_left}站远 - 还有 ${Number(arrival).toFixed(0)} 分钟`),
               direction: "bottom", // 文字方向，有 icon 时为围绕文字的方向，没有 icon 时，则为相对 position 的位置
               offset: [10, offsetY * 20 - 10], // 在 direction 基础上的偏移量
               // 文字样式

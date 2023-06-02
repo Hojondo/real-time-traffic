@@ -152,7 +152,7 @@
             fold: false,
             text: {
               // 要展示的文字内容
-              content: isNaN(Number(arrival))?` ${bus} - 暂无行程`:String(bus).includes('尚未')?` ${bus} - 还没发车，${station_left}站远 - 距发车 ${Number(
+              content: isNaN(Number(arrival))?` ${bus} - 暂无行程`:String(bus).includes('尚未')?` ${bus} - ${station_left}站远 - 距发车 ${Number(
                 arrival
               ).toFixed(0)} 分钟`:` ${bus} - ${station_left}站远 - 还有 ${Number(
                 arrival
